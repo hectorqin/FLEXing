@@ -8,10 +8,13 @@
 
 
 #import "Interfaces.h"
+#import <Cephei/HBPreferences.h>
 
+HBPreferences *preferences;
 BOOL initialized = NO;
 id manager = nil;
 SEL show = nil;
+bool tweakEnabled;
 
 static NSMutableArray *windowsWithGestures = nil;
 
@@ -22,17 +25,28 @@ static Class (*FLXWindowClass)();
 inline bool isSnapchatApp() {
     // See: near line 31 below
     return [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.toyopagroup.picaboo"];
-} 
+}
 
 %ctor {
     NSString *standardPath = @"/Library/MobileSubstrate/DynamicLibraries/libFLEX.dylib";
+    preferences = [[HBPreferences alloc] initWithIdentifier:@"com.htmake.flexing"];
+    [preferences registerBool:&tweakEnabled default:YES forKey:@"Enabled"];
+
     NSFileManager *disk = NSFileManager.defaultManager;
     void *handle = nil;
 
-    if ([disk fileExistsAtPath:standardPath]) {
+    if (tweakEnabled && [disk fileExistsAtPath:standardPath]) {
         // Hey Snapchat / Snap Inc devs,
         // This is so users don't get their accounts locked.
+        bool shouldLoad = NO;
         if (!isSnapchatApp()) {
+            NSString *bundleID = NSBundle.mainBundle.bundleIdentifier;
+            NSDictionary* blackList=[NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.htmake.flexing-blacklist.plist"];
+            if(!(bundleID!=nil && blackList!=nil &&[blackList.allKeys containsObject:bundleID] &&[[blackList objectForKey:bundleID] boolValue]==YES)){
+                shouldLoad = YES;
+            }
+        }
+        if (shouldLoad) {
             handle = dlopen(standardPath.UTF8String, RTLD_LAZY);
         }
     } else {
@@ -87,12 +101,12 @@ inline bool isSnapchatApp() {
 %hook UIStatusBarWindow
 - (id)initWithFrame:(CGRect)frame {
     self = %orig;
-    
+
     if (initialized) {
         // Add long-press gesture to status bar
         [self addGestureRecognizer:[[UILongPressGestureRecognizer alloc] initWithTarget:manager action:show]];
     }
-    
+
     return self;
 }
 %end

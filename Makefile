@@ -1,10 +1,13 @@
-export ARCHS = arm64 armv7s arm64e
+export ARCHS = arm64 arm64e
 export TARGET = iphone:latest:9.0
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = FLEXing
-FLEXing_FILES = Tweak.xm SpringBoard.xm
-FLEXing_CFLAGS += -fobjc-arc -w
+${TWEAK_NAME}_FILES = Tweak.xm SpringBoard.xm
+${TWEAK_NAME}_CFLAGS += -fobjc-arc -w
+$(TWEAK_NAME)_FRAMEWORKS += UIKit
+# $(TWEAK_NAME)_PRIVATE_FRAMEWORKS += Preferences
+$(TWEAK_NAME)_EXTRA_FRAMEWORKS += Cephei
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
@@ -21,4 +24,6 @@ print-%  : ; @echo $* = $($*)
 # one package. We want two separate packages.
 #
 # SUBPROJECTS += libflex
-# include $(THEOS_MAKE_PATH)/aggregate.mk
+
+SUBPROJECTS += Prefs
+include $(THEOS_MAKE_PATH)/aggregate.mk
